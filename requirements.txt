@@ -1,0 +1,20 @@
+# Cerebro conversacional (brain/core.py)
+groq
+python-dotenv
+
+# Escucha - STT (voice/listener.py)
+SpeechRecognition
+PyAudio
+
+# COM / hilo de audio en Windows (main.py usa pythoncom)
+pywin32
+
+# Música - DJ local (voice/music.py); además necesita ffmpeg/ffplay
+# instalados en el sistema y agregados al PATH (no son paquetes de pip)
+yt-dlp
+
+# Utilidades / pruebas (tests/, ver_voces.py) - no las usa main.py en producción
+edge-tts
+playsound
+sounddevice
+pyttsx3

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "brain_core",
+    "nombre": "Cerebro conversacional",
+    "descripcion": "Conversación general vía Groq (brain/core.py).",
+    "version": "1.0.0",
+    "estado": "enabled",
+    "dependencias": [],
+    "archivos": [
+      "brain/core.py"
+    ],
+    "riesgo": "medio",
+    "autor": "agus",
+    "fecha_creacion": "2026-09-17",
+    "version_anterior": null,
+    "aprobado_por_agus": true
+  },
+  {
+    "id": "voice_listener",
+    "nombre": "Escucha (STT)",
+    "descripcion": "Reconocimiento de voz en español rioplatense (voice/listener.py).",
+    "version": "1.0.0",
+    "estado": "enabled",
+    "dependencias": [],
+    "archivos": [
+      "voice/listener.py"
+    ],
+    "riesgo": "bajo",
+    "autor": "agus",
+    "fecha_creacion": "2026-09-17",
+    "version_anterior": null,
+    "aprobado_por_agus": true
+  },
+  {
+    "id": "voice_speaker",
+    "nombre": "Habla (TTS)",
+    "descripcion": "Síntesis de voz vía PowerShell/System.Speech (voice/speaker.py).",
+    "version": "1.0.0",
+    "estado": "enabled",
+    "dependencias": [],
+    "archivos": [
+      "voice/speaker.py"
+    ],
+    "riesgo": "bajo",
+    "autor": "agus",
+    "fecha_creacion": "2026-09-17",
+    "version_anterior": null,
+    "aprobado_por_agus": true
+  },
+  {
+    "id": "voice_music",
+    "nombre": "Música (DJ local)",
+    "descripcion": "Búsqueda y reproducción local de audio de YouTube (voice/music.py).",
+    "version": "1.0.0",
+    "estado": "enabled",
+    "dependencias": [
+      "yt-dlp",
+      "ffmpeg",
+      "ffplay"
+    ],
+    "archivos": [
+      "voice/music.py"
+    ],
+    "riesgo": "medio",
+    "autor": "agus",
+    "fecha_creacion": "2026-09-17",
+    "version_anterior": null,
+    "aprobado_por_agus": true
+  },
+  {
+    "id": "cara_visual",
+    "nombre": "Interfaz visual (cara)",
+    "descripcion": "Animación de ojos, boca y brillo según estado (pantallita.py).",
+    "version": "1.0.0",
+    "estado": "enabled",
+    "dependencias": [],
+    "archivos": [
+      "pantallita.py"
+    ],
+    "riesgo": "bajo",
+    "autor": "agus",
+    "fecha_creacion": "2026-09-17",
+    "version_anterior": null,
+    "aprobado_por_agus": true
+  }
+]

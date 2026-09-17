@@ -1,0 +1,16 @@
+# Entorno virtual
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+
+# Secretos
+.env
+
+# Audio temporal generado por voice/music.py y los tests de TTS
+audio_temp.mp3
+audio_temp.*
+respuesta_temporal.mp3
+respuesta_popote.mp3

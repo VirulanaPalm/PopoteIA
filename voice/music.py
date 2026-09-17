@@ -7,6 +7,8 @@ reproduce localmente con ffplay -nodisp, sin abrir navegador ni ventanas.
 
 import os
 import subprocess
+from pycaw.pycaw import AudioUtilities, ISimpleAudioVolume
+import pythoncom
 
 RUTA_AUDIO = os.path.abspath("audio_temp.mp3")
 BUSQUEDA_POR_DEFECTO = "Skrillex Bangarang"
@@ -103,3 +105,27 @@ def detener_musica() -> None:
         _proceso_musica.terminate()
         _proceso_musica.wait(timeout=2)
     _proceso_musica = None
+
+def atenuar_musica():
+    """Baja el volumen de la música (ffplay.exe) al 15%."""
+    try:
+        pythoncom.CoInitialize()
+        sesiones = AudioUtilities.GetAllSessions()
+        for sesion in sesiones:
+            if sesion.Process and sesion.Process.name() == "ffplay.exe":
+                volumen = sesion._ctl.QueryInterface(ISimpleAudioVolume)
+                volumen.SetMasterVolume(0.15, None)
+    except:
+        pass
+
+def normalizar_musica():
+    """Sube el volumen de la música (ffplay.exe) de vuelta al 100%."""
+    try:
+        pythoncom.CoInitialize()
+        sesiones = AudioUtilities.GetAllSessions()
+        for sesion in sesiones:
+            if sesion.Process and sesion.Process.name() == "ffplay.exe":
+                volumen = sesion._ctl.QueryInterface(ISimpleAudioVolume)
+                volumen.SetMasterVolume(1.0, None)
+    except:
+        pass

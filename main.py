@@ -1,106 +1,86 @@
-"""
-Punto de entrada de POPOTE.
-
-Arranca la interfaz visual (pantallita.CaraPopote) en el hilo principal,
-y la lógica de escuchar / pensar / hablar en un hilo aparte, para que la
-animación de la cara nunca se congele mientras Popote escucha o piensa.
-"""
-
 import threading
 import tkinter as tk
-
 import pythoncom
-
+import time
 from pantallita import CaraPopote
 from voice.listener import escuchar
 from voice.speaker import decir
-from voice.music import reproducir_musica, detener_musica
 from brain.core import pensar
-
-MENSAJE_BIENVENIDA = "Hola Agustín. Sistemas en línea e interfaz gráfica activada."
-MENSAJE_DESPEDIDA = "Nos vemos hermano. Apagando sistemas. Aguante Boca."
-MENSAJE_MUSICA_PAUSADA = "Música pausada, hermano."
-
-COMANDOS_APAGADO = ("apagar sistema", "andate a dormir")
-
-COMANDOS_DETENER_MUSICA = (
-    "detener", "parar", "para la", "pará la",
-    "apaga", "apagá", "silencio", "corta la", "cortá la",
-)
-
-# Solo dispara el modo música si el pedido arranca con uno de estos verbos,
-# para no confundir un comentario cualquiera con una orden de reproducir algo.
-VERBOS_PEDIR_MUSICA = (
-    "poné", "ponete", "reproducir", "reproduce",
-    "buscá", "busca", "quiero escuchar",
-)
-
-
-def _contiene_alguno(texto, palabras):
-    return any(palabra in texto for palabra in palabras)
-
-
-def _empieza_con_alguno(texto, prefijos):
-    return any(texto.startswith(prefijo) for prefijo in prefijos)
-
+from voice.music import reproducir_musica, detener_musica, atenuar_musica, normalizar_musica
 
 def logica_ia(app):
-    """Loop principal de Popote: escucha, interpreta el comando y responde."""
     pythoncom.CoInitialize()
-
+    
     def hablar(texto):
+        atenuar_musica()
         decir(texto, callback_inicio=app.iniciar_habla, callback_fin=app.detener_habla)
+        normalizar_musica()
 
-    hablar(MENSAJE_BIENVENIDA)
-
+    hablar("Hola Agustín. Sistemas en línea e interfaz gráfica activada.")
+    
+    # Memoria de estado del hardware
+    hardware_ok = True 
+    
     while True:
+        atenuar_musica()
         app.estado_escuchando()
         texto_usuario = escuchar()
         app.estado_normal()
-
-        if not texto_usuario:
+        normalizar_musica()
+        
+        # --- CONTROL INTELIGENTE DE HARDWARE ---
+        if texto_usuario == "[ERROR_DISPOSITIVO]":
+            if hardware_ok: 
+                # Solo imprime el error la primera vez que se cae, para no hacer spam
+                print("[SISTEMA ALERTA]: Sin conexión a audio o micrófono. Esperando hardware...")
+                hardware_ok = False
+            time.sleep(2) # Espera 2 segundos y vuelve a escanear
             continue
-
-        texto_minus = texto_usuario.lower()
-
-        # Comando de apagado
-        if _contiene_alguno(texto_minus, COMANDOS_APAGADO):
-            detener_musica()
-            hablar(MENSAJE_DESPEDIDA)
-            app.root.quit()
-            break
-
-        # 1. PRIORIDAD ABSOLUTA: frenar la música
-        elif _contiene_alguno(texto_minus, COMANDOS_DETENER_MUSICA):
-            detener_musica()
-            hablar(MENSAJE_MUSICA_PAUSADA)
-
-        # 2. MÚSICA: solo si la orden es clara y arranca con un verbo de pedido directo
-        elif _empieza_con_alguno(texto_minus, VERBOS_PEDIR_MUSICA):
-            app.estado_pensando()
-            print("[POPOTE DJ LOCAL ACTIVADO]")
-            respuesta_musica = reproducir_musica(texto_usuario)
-            app.estado_normal()
-            hablar(respuesta_musica)
-
-        # 3. Charla normal con Groq (si no fue comando de música ni de frenado)
         else:
-            app.estado_pensando()
-            print("[POPOTE PENSANDO...]")
-            respuesta_inteligente = pensar(texto_usuario)
-            app.estado_normal()
-            hablar(respuesta_inteligente)
-
-
-def main():
-    ventana = tk.Tk()
-    app = CaraPopote(ventana)
-
-    hilo_ia = threading.Thread(target=logica_ia, args=(app,), daemon=True)
-    hilo_ia.start()
-
-    ventana.mainloop()
-
+            # Si logró leer algo (texto o silencio) pero estaba caído, ¡significa que volvió!
+            if not hardware_ok:
+                hardware_ok = True
+                print("[SISTEMA ALERTA]: Conexión restablecida.")
+                hablar("Conexión restablecida. Ya puedo hablar y escuchar de nuevo.")
+        
+        # --- PROCESAMIENTO DE COMANDOS ---
+        if texto_usuario:
+            texto_minus = texto_usuario.lower()
+            
+            # Comando de apagado
+            if "apagar sistema" in texto_minus or "andate a dormir" in texto_minus:
+                detener_musica()
+                hablar("Nos vemos hermano. Apagando sistemas. Aguante Boca.")
+                app.root.quit()
+                break
+                
+            # 1. Frenar la música
+            elif any(palabra in texto_minus for palabra in ["detener", "parar", "para la", "pará la", "apaga", "apagá", "silencio", "corta la", "cortá la"]):
+                detener_musica()
+                hablar("Música pausada, hermano.")
+                
+            # 2. Reproducir música
+            elif any(texto_minus.startswith(verbo) for verbo in ["poné", "ponete", "reproducir", "reproduce", "buscá", "busca", "quiero escuchar"]):
+                app.estado_pensando() 
+                print("[POPOTE DJ LOCAL ACTIVADO]")
+                respuesta_musica = reproducir_musica(texto_usuario)
+                app.estado_normal()
+                hablar(respuesta_musica)
+                
+            # 3. Charla normal con Groq
+            else:
+                app.estado_pensando() 
+                print("[POPOTE PENSANDO...]")
+                respuesta_inteligente = pensar(texto_usuario)
+                app.estado_normal()
+                hablar(respuesta_inteligente)
 
 if __name__ == "__main__":
-    main()
+    ventana = tk.Tk()
+    app = CaraPopote(ventana)
+    
+    hilo_ia = threading.Thread(target=logica_ia, args=(app,))
+    hilo_ia.daemon = True 
+    hilo_ia.start()
+    
+    ventana.mainloop()

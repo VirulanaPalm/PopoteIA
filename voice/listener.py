@@ -3,13 +3,18 @@ import speech_recognition as sr
 def escuchar():
     r = sr.Recognizer()
     
+    # Sensibilidad base (300 es ideal para una habitación normal)
+    r.energy_threshold = 300 
+    r.dynamic_energy_threshold = True 
+    r.pause_threshold = 1.2
+    r.non_speaking_duration = 0.4
+    
     try:
-        # Intentamos abrir el micrófono...
         with sr.Microphone() as source:
-            r.pause_threshold = 0.7
-            r.adjust_for_ambient_noise(source, duration=0.5)
+            # ELIMINAMOS el adjust_for_ambient_noise. 
+            # Ahora empieza a grabar INMEDIATAMENTE sin comerse tus primeras palabras.
             try:
-                audio = r.listen(source, timeout=3, phrase_time_limit=10)
+                audio = r.listen(source, timeout=3, phrase_time_limit=15)
                 texto = r.recognize_google(audio, language='es-AR')
                 print(f"[USUARIO]: {texto}")
                 return texto
@@ -22,5 +27,4 @@ def escuchar():
                 return ""
                 
     except Exception as e:
-        # ¡Magia! Si cae acá es porque no hay micrófono conectado
         return "[ERROR_DISPOSITIVO]"

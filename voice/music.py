@@ -1,11 +1,5 @@
-"""
-Módulo de música de POPOTE ("DJ local").
-
-Busca el tema pedido en YouTube, descarga solo el audio con yt-dlp y lo
-reproduce localmente con ffplay -nodisp, sin abrir navegador ni ventanas.
-"""
-
 import os
+import sys
 import subprocess
 from pycaw.pycaw import AudioUtilities, ISimpleAudioVolume
 import pythoncom
@@ -22,18 +16,14 @@ PALABRAS_A_SACAR = (
     "hola popote", "hola", "popote",
 )
 
-# Guardamos referencia al proceso de ffplay para poder cortarlo después
 _proceso_musica = None
-
 
 def _limpiar_busqueda(comando_usuario: str) -> str:
     busqueda = comando_usuario.lower()
     for palabra in PALABRAS_A_SACAR:
         busqueda = busqueda.replace(palabra, "")
-    # Colapsa los espacios dobles que quedan del reemplazo
     busqueda = " ".join(busqueda.split())
     return busqueda.strip()
-
 
 def reproducir_musica(comando_usuario: str) -> str:
     """Busca el tema en YouTube, descarga el audio y lo reproduce localmente."""
@@ -45,7 +35,6 @@ def reproducir_musica(comando_usuario: str) -> str:
 
     print(f"[DJ POPOTE] Descargando '{busqueda}' para reproducir localmente...")
 
-    # Si había algo sonando, lo detenemos y liberamos el archivo anterior
     detener_musica()
 
     if os.path.exists(RUTA_AUDIO):
@@ -55,10 +44,11 @@ def reproducir_musica(comando_usuario: str) -> str:
             pass
 
     try:
-        # -o sin extensión: yt-dlp le agrega el .mp3 después de convertir
         salida_sin_ext = RUTA_AUDIO.replace(".mp3", "")
+        
+        # EL TRUCO MAGICO: Llamar a yt-dlp como módulo de Python (sys.executable -m yt_dlp)
         comando = [
-            "yt-dlp",
+            sys.executable, "-m", "yt_dlp",
             f"ytsearch1:{busqueda} official audio",
             "-x", "--audio-format", "mp3",
             "-o", f"{salida_sin_ext}.%(ext)s",
@@ -72,11 +62,12 @@ def reproducir_musica(comando_usuario: str) -> str:
             timeout=TIMEOUT_DESCARGA_SEGUNDOS,
         )
 
+        # Si falla, imprimimos TODO el error real en la consola
         if resultado.returncode != 0:
-            print("[YT-DLP ERROR]", resultado.stderr)
+            error_real = resultado.stderr if resultado.stderr else resultado.stdout
+            print(f"\n[YT-DLP ERROR DETALLADO]:\n{error_real}\n")
 
         if os.path.exists(RUTA_AUDIO) and os.path.getsize(RUTA_AUDIO) > 0:
-            # -nodisp: sin ventana. -autoexit: cierra el proceso cuando termina el tema.
             _proceso_musica = subprocess.Popen(
                 ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", RUTA_AUDIO],
                 stdout=subprocess.DEVNULL,
@@ -85,15 +76,11 @@ def reproducir_musica(comando_usuario: str) -> str:
             return f"Reproduciendo {busqueda}, hermano. ¡A disfrutar!"
 
         return (
-            f"No pude descargar '{busqueda}'. Revisá que tengas ffmpeg "
-            "instalado y en el PATH, y que yt-dlp esté actualizado "
-            "(pip install -U yt-dlp)."
+            f"No pude descargar '{busqueda}'. Revisá la consola para ver el error exacto."
         )
 
     except subprocess.TimeoutExpired:
         return "La descarga tardó demasiado, probemos con otro tema."
-    except FileNotFoundError:
-        return "No encuentro yt-dlp instalado. Instalalo con: pip install yt-dlp"
     except Exception as e:
         return f"Se me cruzaron los cables con la música: {e}"
 
@@ -105,6 +92,7 @@ def detener_musica() -> None:
         _proceso_musica.terminate()
         _proceso_musica.wait(timeout=2)
     _proceso_musica = None
+
 
 def atenuar_musica():
     """Baja el volumen de la música (ffplay.exe) al 15%."""
@@ -118,6 +106,7 @@ def atenuar_musica():
     except:
         pass
 
+
 def normalizar_musica():
     """Sube el volumen de la música (ffplay.exe) de vuelta al 100%."""
     try:
@@ -129,3 +118,24 @@ def normalizar_musica():
                 volumen.SetMasterVolume(1.0, None)
     except:
         pass
+
+
+def cambiar_volumen(nivel: float) -> str:
+    """Cambia el volumen fijo de la música de forma manual (0.0 a 1.0)."""
+    try:
+        pythoncom.CoInitialize()
+        sesiones = AudioUtilities.GetAllSessions()
+        cambiado = False
+        for sesion in sesiones:
+            if sesion.Process and sesion.Process.name() == "ffplay.exe":
+                volumen = sesion._ctl.QueryInterface(ISimpleAudioVolume)
+                volumen.SetMasterVolume(nivel, None)
+                cambiado = True
+        
+        if cambiado:
+            porcentaje = int(nivel * 100)
+            return f"Listo el pollo, volumen al {porcentaje} por ciento."
+        else:
+            return "No hay música sonando para cambiarle el volumen."
+    except Exception as e:
+        return f"Me falló la perilla del volumen: {e}"
